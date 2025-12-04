@@ -1,0 +1,408 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Campus Event Management Platform - Presentation</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f0f0f0;
+        }
+        .presentation {
+            display: none;
+        }
+        .presentation.active {
+            display: block;
+        }
+        .slide {
+            width: 100%;
+            height: 100vh;
+            display: none;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 60px;
+            font-size: 24px;
+            position: relative;
+            overflow: hidden;
+        }
+        .slide.active {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+        }
+        .slide h1 {
+            font-size: 72px;
+            font-weight: 700;
+            margin-bottom: 30px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+        .slide h2 {
+            font-size: 56px;
+            font-weight: 600;
+            margin-bottom: 40px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+        .slide p, .slide li {
+            font-size: 32px;
+            line-height: 1.8;
+            margin: 15px 0;
+            max-width: 1000px;
+        }
+        .slide ul {
+            list-style: none;
+            text-align: left;
+            display: inline-block;
+        }
+        .slide li {
+            margin: 20px 0;
+            padding-left: 40px;
+            position: relative;
+        }
+        .slide li:before {
+            content: "✓";
+            position: absolute;
+            left: 0;
+            font-weight: bold;
+            font-size: 36px;
+        }
+        .slide.title-slide {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        .slide.content-slide {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        }
+        .slide.tech-slide {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            color: #333;
+        }
+        .slide.tech-slide h2,
+        .slide.tech-slide p,
+        .slide.tech-slide li {
+            color: #333;
+        }
+        .slide.challenges-slide {
+            background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+            color: #333;
+        }
+        .slide.challenges-slide h2,
+        .slide.challenges-slide p,
+        .slide.challenges-slide li {
+            color: #333;
+        }
+        .slide.closing-slide {
+            background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+            color: #333;
+        }
+        .slide.closing-slide h1 {
+            color: #333;
+            font-size: 64px;
+        }
+        .slide.closing-slide p {
+            color: #333;
+            font-size: 28px;
+        }
+        .controls {
+            position: fixed;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 20px;
+            z-index: 1000;
+        }
+        .btn {
+            background: rgba(255,255,255,0.3);
+            color: white;
+            border: 2px solid white;
+            padding: 12px 30px;
+            font-size: 16px;
+            border-radius: 25px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        .btn:hover {
+            background: rgba(255,255,255,0.5);
+            transform: scale(1.05);
+        }
+        .slide-counter {
+            position: fixed;
+            top: 20px;
+            right: 30px;
+            background: rgba(255,255,255,0.2);
+            color: white;
+            padding: 10px 20px;
+            border-radius: 20px;
+            font-size: 18px;
+        }
+        .two-column {
+            display: flex;
+            gap: 40px;
+            justify-content: center;
+            align-items: flex-start;
+            text-align: left;
+        }
+        .column {
+            flex: 1;
+        }
+        .feature-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-top: 40px;
+        }
+        .feature-box {
+            background: rgba(255,255,255,0.1);
+            padding: 30px;
+            border-radius: 15px;
+            backdrop-filter: blur(10px);
+        }
+        .feature-box h3 {
+            font-size: 28px;
+            margin-bottom: 15px;
+        }
+        .tech-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 20px;
+            margin-top: 40px;
+        }
+        .tech-item {
+            background: rgba(255,255,255,0.1);
+            padding: 20px;
+            border-radius: 10px;
+            backdrop-filter: blur(10px);
+            font-size: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="presentation active">
+        <!-- Slide 1: Title -->
+        <div class="slide title-slide active">
+            <h1>Campus Event Management Platform</h1>
+            <p style="font-size: 40px; margin-top: 40px;">A Modern Solution for Student Engagement</p>
+            <p style="font-size: 28px; margin-top: 60px; opacity: 0.9;">Connecting students with campus events</p>
+        </div>
+
+        <!-- Slide 2: Introduction -->
+        <div class="slide content-slide">
+            <h2>Introduction / Problem Statement</h2>
+            <div style="max-width: 1000px; text-align: left; margin-top: 50px;">
+                <p style="margin: 20px 0;"><strong>Challenge:</strong> Campus students struggle to discover and engage with events</p>
+                <p style="margin: 20px 0;"><strong>Current Issues:</strong></p>
+                <ul style="margin-left: 40px;">
+                    <li>Limited event discovery platforms</li>
+                    <li>No centralized event management system</li>
+                    <li>Poor student engagement with campus activities</li>
+                    <li>Difficult event filtering and search</li>
+                </ul>
+                <p style="margin-top: 40px;"><strong>Solution:</strong> Create an Instagram-like platform for seamless event discovery and engagement</p>
+            </div>
+        </div>
+
+        <!-- Slide 3: Objectives & Goals -->
+        <div class="slide content-slide">
+            <h2>Objectives & Goals</h2>
+            <ul style="margin-top: 50px; font-size: 28px;">
+                <li>Enable students to discover campus events effortlessly</li>
+                <li>Provide admins with complete event management control</li>
+                <li>Foster community engagement through interactions (likes, comments, reactions)</li>
+                <li>Implement secure authentication with email verification</li>
+                <li>Create an intuitive, mobile-friendly user interface</li>
+                <li>Track event engagement metrics and analytics</li>
+            </ul>
+        </div>
+
+        <!-- Slide 4: Features - Users -->
+        <div class="slide content-slide">
+            <h2>Features: User Experience</h2>
+            <div class="feature-grid">
+                <div class="feature-box">
+                    <h3>Authentication</h3>
+                    <p style="font-size: 20px;">Email verification with 6-digit codes, secure password protection</p>
+                </div>
+                <div class="feature-box">
+                    <h3>Event Browsing</h3>
+                    <p style="font-size: 20px;">Instagram-like feed with event photos, descriptions, and details</p>
+                </div>
+                <div class="feature-box">
+                    <h3>Interactions</h3>
+                    <p style="font-size: 20px;">Like, dislike, comment, and emoji reactions on events</p>
+                </div>
+                <div class="feature-box">
+                    <h3>Smart Filtering</h3>
+                    <p style="font-size: 20px;">Filter by category, sort by latest/oldest/popular</p>
+                </div>
+                <div class="feature-box">
+                    <h3>Search</h3>
+                    <p style="font-size: 20px;">Real-time search across event titles and descriptions</p>
+                </div>
+                <div class="feature-box">
+                    <h3>User Profile</h3>
+                    <p style="font-size: 20px;">View stats, liked events, and interaction history</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 5: Features - Admin -->
+        <div class="slide content-slide">
+            <h2>Features: Admin Dashboard</h2>
+            <div style="max-width: 1000px; text-align: left; margin-top: 50px;">
+                <p style="margin: 15px 0;"><strong>CRUD Operations:</strong> Create, read, update, delete events</p>
+                <p style="margin: 15px 0;"><strong>File Upload:</strong> Upload event images directly from device or use URLs</p>
+                <p style="margin: 15px 0;"><strong>Analytics:</strong> View detailed engagement metrics for each event</p>
+                <p style="margin: 15px 0;"><strong>User Insights:</strong> See who liked/disliked, all comments, reactions</p>
+                <p style="margin: 15px 0;"><strong>Event Management:</strong> Organize by category, date, and location</p>
+                <p style="margin: 15px 0;"><strong>Password Protection:</strong> Secure admin access with dedicated login</p>
+            </div>
+        </div>
+
+        <!-- Slide 6: Architecture -->
+        <div class="slide tech-slide">
+            <h2>Architecture / Technology Stack</h2>
+            <div class="tech-grid" style="margin-top: 50px;">
+                <div class="tech-item">
+                    <strong style="font-size: 24px;">Frontend</strong>
+                    <p style="margin-top: 10px;">React 19, Next.js 16, TypeScript</p>
+                </div>
+                <div class="tech-item">
+                    <strong style="font-size: 24px;">UI Framework</strong>
+                    <p style="margin-top: 10px;">Tailwind CSS, shadcn/ui components</p>
+                </div>
+                <div class="tech-item">
+                    <strong style="font-size: 24px;">Backend</strong>
+                    <p style="margin-top: 10px;">Next.js Server Actions, Route Handlers</p>
+                </div>
+                <div class="tech-item">
+                    <strong style="font-size: 24px;">Database</strong>
+                    <p style="margin-top: 10px;">MongoDB with secure connection pooling</p>
+                </div>
+                <div class="tech-item">
+                    <strong style="font-size: 24px;">Authentication</strong>
+                    <p style="margin-top: 10px;">HTTP-only cookies, bcryptjs hashing</p>
+                </div>
+                <div class="tech-item">
+                    <strong style="font-size: 24px;">Email Service</strong>
+                    <p style="margin-top: 10px;">Resend for verification emails</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 7: Database Schema -->
+        <div class="slide tech-slide">
+            <h2>Database Schema</h2>
+            <div style="max-width: 1000px; text-align: left; margin-top: 40px; font-size: 20px;">
+                <p style="margin: 15px 0;"><strong>Users Collection:</strong></p>
+                <p style="margin-left: 30px; font-size: 18px;">email, username, password (hashed), isVerified, likedPosts, dislikedPosts, createdAt</p>
+                
+                <p style="margin: 25px 0 15px 0;"><strong>Events Collection:</strong></p>
+                <p style="margin-left: 30px; font-size: 18px;">title, description, imageUrl, category, location, date, likes[], dislikes[], comments[], reactions[], createdAt</p>
+                
+                <p style="margin: 25px 0 15px 0;"><strong>Comments Schema:</strong></p>
+                <p style="margin-left: 30px; font-size: 18px;">_id, userId, username, text, createdAt</p>
+                
+                <p style="margin: 25px 0 15px 0;"><strong>Reactions Schema:</strong></p>
+                <p style="margin-left: 30px; font-size: 18px;">userId, emoji</p>
+            </div>
+        </div>
+
+        <!-- Slide 8: Challenges & Learnings -->
+        <div class="slide challenges-slide">
+            <h2>Challenges & Learnings</h2>
+            <div style="max-width: 1000px; text-align: left; margin-top: 50px;">
+                <p style="margin: 15px 0;"><strong>✓ Challenge 1:</strong> Implementing real-time email verification</p>
+                <p style="margin-left: 30px; font-size: 20px;">Learned: Integrating third-party email services (Resend) with Next.js</p>
+                
+                <p style="margin: 20px 0 15px 0;"><strong>✓ Challenge 2:</strong> Secure authentication without frameworks</p>
+                <p style="margin-left: 30px; font-size: 20px;">Learned: Cookie-based sessions, password hashing, security best practices</p>
+                
+                <p style="margin: 20px 0 15px 0;"><strong>✓ Challenge 3:</strong> Image file uploads and storage</p>
+                <p style="margin-left: 30px; font-size: 20px;">Learned: Base64 encoding, file handling in Next.js, UX for image selection</p>
+                
+                <p style="margin: 20px 0 15px 0;"><strong>✓ Challenge 4:</strong> Complex sorting and filtering</p>
+                <p style="margin-left: 30px; font-size: 20px;">Learned: MongoDB aggregation, client-side filtering optimization</p>
+            </div>
+        </div>
+
+        <!-- Slide 9: Challenges & Learnings (Continued) -->
+        <div class="slide challenges-slide">
+            <h2>Key Learnings & Future Enhancements</h2>
+            <div style="max-width: 1000px; text-align: left; margin-top: 40px; font-size: 24px;">
+                <p style="margin: 15px 0;"><strong>Technical Skills Gained:</strong></p>
+                <ul style="margin-left: 40px;">
+                    <li>Full-stack Next.js development</li>
+                    <li>MongoDB database design and optimization</li>
+                    <li>Authentication and security patterns</li>
+                </ul>
+                
+                <p style="margin: 30px 0 15px 0;"><strong>Future Enhancements:</strong></p>
+                <ul style="margin-left: 40px;">
+                    <li>Push notifications for event updates</li>
+                    <li>Event RSVP system</li>
+                    <li>User follow system</li>
+                    <li>Event recommendations based on history</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- Slide 10: Thank You -->
+        <div class="slide closing-slide">
+            <h1>Thank You</h1>
+            <p style="margin-top: 40px; font-size: 32px;">Campus Event Management Platform</p>
+            <p style="margin-top: 20px; font-size: 26px; opacity: 0.8;">Making campus events accessible to everyone</p>
+            <p style="margin-top: 80px; font-size: 24px;">Questions?</p>
+        </div>
+    </div>
+
+    <div class="slide-counter">
+        <span id="current-slide">1</span> / <span id="total-slides">10</span>
+    </div>
+
+    <div class="controls">
+        <button class="btn" onclick="previousSlide()">← Previous</button>
+        <button class="btn" onclick="nextSlide()">Next →</button>
+    </div>
+
+    <script>
+        let currentSlide = 1;
+        const totalSlides = document.querySelectorAll('.slide').length;
+        document.getElementById('total-slides').textContent = totalSlides;
+
+        function showSlide(n) {
+            const slides = document.querySelectorAll('.slide');
+            if (n > totalSlides) currentSlide = totalSlides;
+            if (n < 1) currentSlide = 1;
+
+            slides.forEach(slide => slide.classList.remove('active'));
+            slides[currentSlide - 1].classList.add('active');
+
+            document.getElementById('current-slide').textContent = currentSlide;
+        }
+
+        function nextSlide() {
+            currentSlide++;
+            showSlide(currentSlide);
+        }
+
+        function previousSlide() {
+            currentSlide--;
+            showSlide(currentSlide);
+        }
+
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'ArrowRight') nextSlide();
+            if (e.key === 'ArrowLeft') previousSlide();
+        });
+
+        showSlide(currentSlide);
+    </script>
+</body>
+</html>
