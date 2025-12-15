@@ -1,46 +1,42 @@
-import { type NextRequest, NextResponse } from "next/server"
-import { cookies } from "next/headers"
+import { NextResponse } from "next/server";
+import crypto from "crypto";
 
-export async function POST(request: NextRequest) {
+export async function POST(request: Request) {
   try {
-    const { password } = await request.json()
-    const adminPassword = process.env.ADMIN_PASSWORD
+    const { password } = await request.json();
+    const adminPassword = process.env.ADMIN_PASSWORD;
 
     if (password !== adminPassword) {
-      return NextResponse.json({ error: "Invalid password" }, { status: 401 })
+      return NextResponse.json({ error: "Invalid password" }, { status: 401 });
     }
 
-    const cookieStore = await cookies()
-    const token = crypto.randomUUID()
+    const token = crypto.randomUUID();
 
-    cookieStore.set("admin_session", token, {
+    // Send the cookie in response
+    const res = NextResponse.json({ success: true });
+    res.cookies.set({
+      name: "admin_session",
+      value: token,
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
       sameSite: "lax",
-      expires: new Date(Date.now() + 24 * 60 * 60 * 1000), // 24 hours
+      maxAge: 24 * 60 * 60, // 24 hours in seconds
       path: "/",
-    })
+    });
 
-    return NextResponse.json({ success: true })
+    return res;
   } catch (error) {
-    console.error("Admin auth error:", error)
-    return NextResponse.json({ error: "Authentication failed" }, { status: 500 })
+    console.error("Admin auth error:", error);
+    return NextResponse.json({ error: "Authentication failed" }, { status: 500 });
   }
 }
 
-export async function GET() {
-  const cookieStore = await cookies()
-  const adminSession = cookieStore.get("admin_session")
+export async function GET(request: Request) {
+  const adminSession = request.cookies.get("admin_session")?.value;
 
   if (!adminSession) {
-    return NextResponse.json({ authenticated: false }, { status: 401 })
+    return NextResponse.json({ authenticated: false }, { status: 401 });
   }
 
-  return NextResponse.json({ authenticated: true })
-}
-
-export async function DELETE() {
-  const cookieStore = await cookies()
-  cookieStore.delete("admin_session")
-  return NextResponse.json({ success: true })
+  return NextResponse.json({ authenticated: true });
 }
