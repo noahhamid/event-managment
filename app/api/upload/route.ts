@@ -1,39 +1,36 @@
-import { NextResponse } from "next/server"
-import path from "path"
-import fs from "fs/promises"
+import { type NextRequest, NextResponse } from "next/server"
+import { put } from "@vercel/blob"
 
-export const runtime = "nodejs"
-
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
   try {
     const formData = await request.formData()
-    const file = formData.get("file")
+    const file = formData.get("file") as File
 
-    if (!(file instanceof Blob)) {
-      return NextResponse.json({ error: "No file uploaded" }, { status: 400 })
+    if (!file) {
+      return NextResponse.json({ error: "No file provided" }, { status: 400 })
     }
 
+    // Validate file type
     const validTypes = ["image/jpeg", "image/png", "image/gif", "image/webp"]
     if (!validTypes.includes(file.type)) {
-      return NextResponse.json({ error: "Invalid file type" }, { status: 400 })
+      return NextResponse.json(
+        { error: "Invalid file type. Please upload a JPEG, PNG, GIF, or WebP image." },
+        { status: 400 },
+      )
     }
 
-    const buffer = Buffer.from(await file.arrayBuffer())
-    const uploadDir = path.join(process.cwd(), "public/uploads")
+    // Validate file size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      return NextResponse.json({ error: "File too large. Maximum size is 5MB." }, { status: 400 })
+    }
 
-    await fs.mkdir(uploadDir, { recursive: true })
-
-    const fileName = `${Date.now()}-${Math.random().toString(36).slice(2)}`
-    const ext = file.type.split("/")[1]
-    const filePath = path.join(uploadDir, `${fileName}.${ext}`)
-
-    await fs.writeFile(filePath, buffer)
-
-    return NextResponse.json({
-      url: `/uploads/${fileName}.${ext}`,
+    const blob = await put(`uploads/${Date.now()}-${file.name}`, file, {
+      access: "public",
     })
-  } catch (err) {
-    console.error(err)
-    return NextResponse.json({ error: "Upload failed" }, { status: 500 })
+
+    return NextResponse.json({ url: blob.url })
+  } catch (error) {
+    console.error("Upload error:", error)
+    return NextResponse.json({ error: "Failed to upload file" }, { status: 500 })
   }
 }
