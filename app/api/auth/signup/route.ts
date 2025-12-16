@@ -84,7 +84,7 @@ export async function POST(request: NextRequest) {
         // --- 2. Send Verification Email ---
         // This is done after either inserting or updating the user record.
         await resend.emails.send({
-            from: "CampusHub <onboarding@resend.dev>",
+            from: "CampusHub <verify@beysolution.com>",
             to: email,
             subject: "Verify your CampusHub account",
             html: `
