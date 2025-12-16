@@ -1,33 +1,39 @@
-"use client"
+"use client";
 
-import type React from "react"
+import type React from "react";
 
-import { useState } from "react"
-import { useRouter } from "next/navigation"
-import Link from "next/link"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { ArrowLeft, Loader2, Mail, Lock, User, Sparkles } from "lucide-react"
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import Link from "next/link";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { ArrowLeft, Loader2, Mail, Lock, User, Sparkles } from "lucide-react";
 
 export default function SignUpPage() {
-  const router = useRouter()
-  const [step, setStep] = useState<"register" | "verify">("register")
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState("")
-  const [userId, setUserId] = useState("")
+  const router = useRouter();
+  const [step, setStep] = useState<"register" | "verify">("register");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [userId, setUserId] = useState("");
   const [formData, setFormData] = useState({
     email: "",
     password: "",
     username: "",
     verificationCode: "",
-  })
+  });
 
   const handleRegister = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setLoading(true)
-    setError("")
+    e.preventDefault();
+    setLoading(true);
+    setError("");
 
     try {
       const res = await fetch("/api/auth/signup", {
@@ -38,27 +44,27 @@ export default function SignUpPage() {
           password: formData.password,
           username: formData.username,
         }),
-      })
+      });
 
-      const data = await res.json()
+      const data = await res.json();
 
       if (!res.ok) {
-        throw new Error(data.error)
+        throw new Error(data.error);
       }
 
-      setUserId(data.userId)
-      setStep("verify")
+      setUserId(data.userId);
+      setStep("verify");
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Something went wrong")
+      setError(err instanceof Error ? err.message : "Something went wrong");
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   const handleVerify = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setLoading(true)
-    setError("")
+    e.preventDefault();
+    setLoading(true);
+    setError("");
 
     try {
       const res = await fetch("/api/auth/verify", {
@@ -68,21 +74,21 @@ export default function SignUpPage() {
           userId,
           code: formData.verificationCode,
         }),
-      })
+      });
 
-      const data = await res.json()
+      const data = await res.json();
 
       if (!res.ok) {
-        throw new Error(data.error)
+        throw new Error(data.error);
       }
 
-      router.push("/feed")
+      router.push("/feed");
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Something went wrong")
+      setError(err instanceof Error ? err.message : "Something went wrong");
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   return (
     <div className="min-h-screen bg-background flex items-center justify-center px-4 py-12">
@@ -113,11 +119,17 @@ export default function SignUpPage() {
             {step === "register" ? "Create your account" : "Verify your email"}
           </CardTitle>
           <CardDescription>
-            {step === "register" ? "Join CampusHub and discover amazing events" : `We sent a code to ${formData.email}`}
+            {step === "register"
+              ? "Join CampusHub and discover amazing events"
+              : `We sent a code to ${formData.email}`}
           </CardDescription>
         </CardHeader>
         <CardContent>
-          {error && <div className="mb-4 p-3 rounded-lg bg-destructive/10 text-destructive text-sm">{error}</div>}
+          {error && (
+            <div className="mb-4 p-3 rounded-lg bg-destructive/10 text-destructive text-sm">
+              {error}
+            </div>
+          )}
 
           {step === "register" ? (
             <form onSubmit={handleRegister} className="space-y-4">
@@ -127,9 +139,11 @@ export default function SignUpPage() {
                   <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <Input
                     id="username"
-                    placeholder="johndoe"
+                    placeholder="Abebe"
                     value={formData.username}
-                    onChange={(e) => setFormData({ ...formData, username: e.target.value })}
+                    onChange={(e) =>
+                      setFormData({ ...formData, username: e.target.value })
+                    }
                     className="pl-10"
                     required
                   />
@@ -142,9 +156,11 @@ export default function SignUpPage() {
                   <Input
                     id="email"
                     type="email"
-                    placeholder="john@university.edu"
+                    placeholder="Hope@university.edu"
                     value={formData.email}
-                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                    onChange={(e) =>
+                      setFormData({ ...formData, email: e.target.value })
+                    }
                     className="pl-10"
                     required
                   />
@@ -159,7 +175,9 @@ export default function SignUpPage() {
                     type="password"
                     placeholder="••••••••"
                     value={formData.password}
-                    onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                    onChange={(e) =>
+                      setFormData({ ...formData, password: e.target.value })
+                    }
                     className="pl-10"
                     required
                     minLength={6}
@@ -171,7 +189,11 @@ export default function SignUpPage() {
                 className="w-full bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 text-white"
                 disabled={loading}
               >
-                {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Create Account"}
+                {loading ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  "Create Account"
+                )}
               </Button>
             </form>
           ) : (
@@ -182,7 +204,12 @@ export default function SignUpPage() {
                   id="code"
                   placeholder="123456"
                   value={formData.verificationCode}
-                  onChange={(e) => setFormData({ ...formData, verificationCode: e.target.value })}
+                  onChange={(e) =>
+                    setFormData({
+                      ...formData,
+                      verificationCode: e.target.value,
+                    })
+                  }
                   className="text-center text-2xl tracking-widest"
                   maxLength={6}
                   required
@@ -193,9 +220,18 @@ export default function SignUpPage() {
                 className="w-full bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 text-white"
                 disabled={loading}
               >
-                {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Verify Email"}
+                {loading ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  "Verify Email"
+                )}
               </Button>
-              <Button type="button" variant="ghost" className="w-full" onClick={() => setStep("register")}>
+              <Button
+                type="button"
+                variant="ghost"
+                className="w-full"
+                onClick={() => setStep("register")}
+              >
                 Use a different email
               </Button>
             </form>
@@ -210,5 +246,5 @@ export default function SignUpPage() {
         </CardContent>
       </Card>
     </div>
-  )
+  );
 }
