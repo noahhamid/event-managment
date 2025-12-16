@@ -1,8 +1,7 @@
 "use client";
 
 import type React from "react";
-
-import { useState, useEffect, useRef } from "react";
+import { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import useSWR, { mutate } from "swr";
@@ -60,7 +59,18 @@ import {
   LinkIcon,
 } from "lucide-react";
 
-const fetcher = (url: string) => fetch(url).then((res) => res.json());
+// Updated fetcher to handle 401s gracefully
+const fetcher = async (url: string) => {
+  const res = await fetch(url);
+  if (!res.ok) {
+    // Attempt to read error message if available, otherwise throw generic
+    const errorBody = await res
+      .json()
+      .catch(() => ({ message: res.statusText }));
+    throw new Error(errorBody.message || "Auth failed");
+  }
+  return res.json();
+};
 
 interface Event {
   _id: string;
@@ -82,10 +92,27 @@ interface Event {
   dislikedBy?: string[];
 }
 
+// Define the initial state object once
+const initialFormData = {
+  title: "",
+  description: "",
+  imageUrl: "",
+  date: "",
+  category: "academic",
+};
+
 export default function AdminDashboard() {
   const router = useRouter();
+
+  // --- NEW LOGIN STATE ---
+  const [password, setPassword] = useState("");
+  const [loginLoading, setLoginLoading] = useState(false);
+  const [loginError, setLoginError] = useState("");
+
+  // --- EXISTING STATE ---
   const [loading, setLoading] = useState(false);
   const [uploadingImage, setUploadingImage] = useState(false);
+  const [apiError, setApiError] = useState<string | null>(null); // New state for action errors
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [isEditOpen, setIsEditOpen] = useState(false);
@@ -96,34 +123,56 @@ export default function AdminDashboard() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const editFileInputRef = useRef<HTMLInputElement>(null);
 
-  const [formData, setFormData] = useState({
-    title: "",
-    description: "",
-    imageUrl: "",
-    date: "",
-    category: "academic",
+  const [formData, setFormData] = useState(initialFormData);
+
+  // --- AUTH CHECK ---
+  const {
+    data: authData,
+    error: authError,
+    isLoading: authLoading,
+  } = useSWR("/api/admin/auth", fetcher, {
+    shouldRetryOnError: false,
+    onError: () => {},
   });
 
-  const { data: authData, error: authError } = useSWR(
-    "/api/admin/auth",
-    fetcher
-  );
   const {
     data: eventsData,
     error: eventsError,
     isLoading,
   } = useSWR(authData?.authenticated ? "/api/admin/events" : null, fetcher);
 
-  useEffect(() => {
-    if (authError || (authData && !authData.authenticated)) {
-      router.push("/admin");
+  // --- LOGIN HANDLER ---
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoginLoading(true);
+    setLoginError("");
+
+    try {
+      const res = await fetch("/api/admin/auth", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ password }),
+      });
+
+      if (!res.ok) {
+        const errorData = await res.json();
+        setLoginError(errorData.message || "Invalid password");
+      } else {
+        mutate("/api/admin/auth");
+      }
+    } catch (error) {
+      setLoginError("Something went wrong during sign in");
+    } finally {
+      setLoginLoading(false);
     }
-  }, [authData, authError, router]);
+  };
 
   const handleSignOut = async () => {
     await fetch("/api/admin/auth", { method: "DELETE" });
-    router.push("/admin");
+    mutate("/api/admin/auth");
   };
+
+  // --- EVENT HANDLERS ---
 
   const handleImageUpload = async (
     e: React.ChangeEvent<HTMLInputElement>,
@@ -133,6 +182,7 @@ export default function AdminDashboard() {
     if (!file) return;
 
     setUploadingImage(true);
+    setApiError(null); // Clear previous errors
 
     try {
       const formDataUpload = new FormData();
@@ -144,11 +194,17 @@ export default function AdminDashboard() {
       });
 
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error);
+      if (!res.ok) {
+        // If upload fails, set error and reset imageUrl to prevent broken image
+        setApiError(data.error || "Image upload failed");
+        setFormData((prev) => ({ ...prev, imageUrl: "" }));
+        throw new Error(data.error);
+      }
 
       setFormData((prev) => ({ ...prev, imageUrl: data.url }));
     } catch (err) {
       console.error("Upload error:", err);
+      // setApiError handled above or a generic error is caught here
     } finally {
       setUploadingImage(false);
     }
@@ -157,6 +213,7 @@ export default function AdminDashboard() {
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
+    setApiError(null);
 
     try {
       const res = await fetch("/api/admin/events", {
@@ -166,17 +223,18 @@ export default function AdminDashboard() {
       });
 
       if (res.ok) {
+        // Success
         setIsCreateOpen(false);
-        setFormData({
-          title: "",
-          description: "",
-          imageUrl: "",
-          date: "",
-          category: "academic",
-        });
+        setFormData(initialFormData); // Clear state using initial object
         setImageInputMode("upload");
         mutate("/api/admin/events");
+      } else {
+        // Failure
+        const errorData = await res.json();
+        setApiError(errorData.message || "Failed to create event.");
       }
+    } catch (err) {
+      setApiError("A network error occurred during creation.");
     } finally {
       setLoading(false);
     }
@@ -186,6 +244,7 @@ export default function AdminDashboard() {
     e.preventDefault();
     if (!selectedEvent) return;
     setLoading(true);
+    setApiError(null);
 
     try {
       const res = await fetch(`/api/admin/events/${selectedEvent._id}`, {
@@ -195,19 +254,41 @@ export default function AdminDashboard() {
       });
 
       if (res.ok) {
+        // Success
         setIsEditOpen(false);
         setSelectedEvent(null);
         setImageInputMode("upload");
         mutate("/api/admin/events");
+      } else {
+        // Failure
+        const errorData = await res.json();
+        setApiError(errorData.message || "Failed to update event.");
       }
+    } catch (err) {
+      setApiError("A network error occurred during update.");
     } finally {
       setLoading(false);
     }
   };
 
   const handleDelete = async (eventId: string) => {
-    await fetch(`/api/admin/events/${eventId}`, { method: "DELETE" });
-    mutate("/api/admin/events");
+    setLoading(true);
+    setApiError(null);
+    try {
+      const res = await fetch(`/api/admin/events/${eventId}`, {
+        method: "DELETE",
+      });
+      if (!res.ok) {
+        const errorData = await res.json();
+        setApiError(errorData.message || "Failed to delete event.");
+      } else {
+        mutate("/api/admin/events");
+      }
+    } catch (err) {
+      setApiError("A network error occurred during deletion.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   const openEditDialog = (event: Event) => {
@@ -216,18 +297,32 @@ export default function AdminDashboard() {
       title: event.title,
       description: event.description,
       imageUrl: event.imageUrl,
+      // Date formatting for input[type="datetime-local"] needs YYYY-MM-DDThh:mm
       date: new Date(event.date).toISOString().slice(0, 16),
       category: event.category,
     });
     setImageInputMode("upload");
+    setApiError(null); // Clear errors before opening dialog
     setIsEditOpen(true);
   };
 
   const openDetailsDialog = async (eventId: string) => {
-    const res = await fetch(`/api/admin/events/${eventId}`);
-    const data = await res.json();
-    setSelectedEvent(data.event);
-    setIsDetailsOpen(true);
+    setLoading(true);
+    setApiError(null);
+    try {
+      const res = await fetch(`/api/admin/events/${eventId}`);
+      if (!res.ok) throw new Error("Failed to fetch event details.");
+
+      const data = await res.json();
+      setSelectedEvent(data.event);
+      setIsDetailsOpen(true);
+    } catch (err) {
+      setApiError(
+        err instanceof Error ? err.message : "Failed to load event details."
+      );
+    } finally {
+      setLoading(false);
+    }
   };
 
   const events = eventsData?.events || [];
@@ -238,14 +333,62 @@ export default function AdminDashboard() {
     totalComments: 0,
   };
 
-  if (!authData?.authenticated) {
+  // --- CONDITIONAL RETURNS (Fixes the Loading Issue) ---
+
+  // 1. Show Loading while checking auth
+  if (authLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-purple-500" />
+      <div className="flex h-screen w-full items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
       </div>
     );
   }
 
+  // 2. Show Login Form if not authenticated
+  if (authError || !authData?.authenticated) {
+    return (
+      <div className="flex h-screen w-full items-center justify-center bg-gray-50">
+        <Card className="w-full max-w-md">
+          <CardHeader>
+            <CardTitle className="text-center text-2xl">Admin Access</CardTitle>
+            <CardDescription className="text-center">
+              Please enter the password to continue
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={handleLogin} className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="password">Password</Label>
+                <Input
+                  id="password"
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="Enter admin password"
+                  required
+                />
+              </div>
+              {loginError && (
+                <p className="text-sm text-red-500 font-medium">{loginError}</p>
+              )}
+              <Button type="submit" className="w-full" disabled={loginLoading}>
+                {loginLoading ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Verifying...
+                  </>
+                ) : (
+                  "Sign In"
+                )}
+              </Button>
+            </form>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  // --- Image Input Component is good as is ---
   const ImageInput = ({ isEdit = false }: { isEdit?: boolean }) => (
     <div className="space-y-3">
       <div className="flex items-center gap-2">
@@ -258,7 +401,10 @@ export default function AdminDashboard() {
             className={
               imageInputMode === "upload" ? "bg-purple-500 text-white" : ""
             }
-            onClick={() => setImageInputMode("upload")}
+            onClick={() => {
+              setImageInputMode("upload");
+              setApiError(null);
+            }}
           >
             <Upload className="h-3 w-3 mr-1" />
             Upload
@@ -270,7 +416,10 @@ export default function AdminDashboard() {
             className={
               imageInputMode === "url" ? "bg-purple-500 text-white" : ""
             }
-            onClick={() => setImageInputMode("url")}
+            onClick={() => {
+              setImageInputMode("url");
+              setApiError(null);
+            }}
           >
             <LinkIcon className="h-3 w-3 mr-1" />
             URL
@@ -363,6 +512,14 @@ export default function AdminDashboard() {
       </header>
 
       <main className="max-w-7xl mx-auto px-4 py-8 space-y-8">
+        {/* Global API Error Display */}
+        {apiError && (
+          <div className="p-4 bg-red-100 border border-red-400 text-red-700 rounded-lg">
+            <p className="font-medium">Error:</p>
+            <p className="text-sm">{apiError}</p>
+          </div>
+        )}
+
         {/* Stats */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <Card>
@@ -424,15 +581,11 @@ export default function AdminDashboard() {
               open={isCreateOpen}
               onOpenChange={(open) => {
                 setIsCreateOpen(open);
+                // Reset form state on dialog close
                 if (!open) {
-                  setFormData({
-                    title: "",
-                    description: "",
-                    imageUrl: "",
-                    date: "",
-                    category: "academic",
-                  });
+                  setFormData(initialFormData);
                   setImageInputMode("upload");
+                  setApiError(null);
                 }
               }}
             >
@@ -476,6 +629,11 @@ export default function AdminDashboard() {
                     />
                   </div>
                   <ImageInput />
+                  {apiError && (
+                    <p className="text-sm text-red-500 font-medium">
+                      {apiError}
+                    </p>
+                  )}
                   <div className="space-y-2">
                     <Label htmlFor="date">Date & Time</Label>
                     <Input
@@ -530,6 +688,10 @@ export default function AdminDashboard() {
             {isLoading ? (
               <div className="flex justify-center py-12">
                 <Loader2 className="h-8 w-8 animate-spin text-purple-500" />
+              </div>
+            ) : eventsError ? (
+              <div className="text-center py-12 text-destructive font-medium">
+                Error loading events. Please check server logs.
               </div>
             ) : events.length === 0 ? (
               <div className="text-center py-12 text-muted-foreground">
@@ -587,6 +749,7 @@ export default function AdminDashboard() {
                         variant="ghost"
                         size="icon"
                         onClick={() => openDetailsDialog(event._id)}
+                        disabled={loading}
                       >
                         <Eye className="h-4 w-4" />
                       </Button>
@@ -594,6 +757,7 @@ export default function AdminDashboard() {
                         variant="ghost"
                         size="icon"
                         onClick={() => openEditDialog(event)}
+                        disabled={loading}
                       >
                         <Edit className="h-4 w-4" />
                       </Button>
@@ -603,6 +767,7 @@ export default function AdminDashboard() {
                             variant="ghost"
                             size="icon"
                             className="text-destructive hover:text-destructive"
+                            disabled={loading}
                           >
                             <Trash2 className="h-4 w-4" />
                           </Button>
@@ -620,8 +785,13 @@ export default function AdminDashboard() {
                             <AlertDialogAction
                               onClick={() => handleDelete(event._id)}
                               className="bg-destructive text-white hover:bg-destructive/90"
+                              disabled={loading}
                             >
-                              Delete
+                              {loading ? (
+                                <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                              ) : (
+                                "Delete"
+                              )}
                             </AlertDialogAction>
                           </AlertDialogFooter>
                         </AlertDialogContent>
@@ -639,7 +809,10 @@ export default function AdminDashboard() {
           open={isEditOpen}
           onOpenChange={(open) => {
             setIsEditOpen(open);
-            if (!open) setImageInputMode("upload");
+            if (!open) {
+              setImageInputMode("upload");
+              setApiError(null);
+            }
           }}
         >
           <DialogContent className="max-w-lg">
@@ -671,6 +844,9 @@ export default function AdminDashboard() {
                 />
               </div>
               <ImageInput isEdit />
+              {apiError && (
+                <p className="text-sm text-red-500 font-medium">{apiError}</p>
+              )}
               <div className="space-y-2">
                 <Label htmlFor="edit-date">Date & Time</Label>
                 <Input
@@ -722,7 +898,16 @@ export default function AdminDashboard() {
         </Dialog>
 
         {/* Details Dialog */}
-        <Dialog open={isDetailsOpen} onOpenChange={setIsDetailsOpen}>
+        <Dialog
+          open={isDetailsOpen}
+          onOpenChange={(open) => {
+            setIsDetailsOpen(open);
+            if (!open) {
+              setSelectedEvent(null);
+              setApiError(null);
+            }
+          }}
+        >
           <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>{selectedEvent?.title}</DialogTitle>
@@ -806,63 +991,30 @@ export default function AdminDashboard() {
                       </CardContent>
                     </Card>
                   </div>
-                  {selectedEvent.likedBy &&
-                    selectedEvent.likedBy.length > 0 && (
-                      <div>
-                        <h4 className="font-medium mb-2">Liked by:</h4>
-                        <div className="flex flex-wrap gap-2">
-                          {selectedEvent.likedBy.map((username, i) => (
-                            <span
-                              key={i}
-                              className="px-2 py-1 rounded-full bg-blue-500/10 text-blue-600 text-sm"
-                            >
-                              {username}
-                            </span>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-                  {selectedEvent.dislikedBy &&
-                    selectedEvent.dislikedBy.length > 0 && (
-                      <div>
-                        <h4 className="font-medium mb-2">Disliked by:</h4>
-                        <div className="flex flex-wrap gap-2">
-                          {selectedEvent.dislikedBy.map((username, i) => (
-                            <span
-                              key={i}
-                              className="px-2 py-1 rounded-full bg-red-500/10 text-red-600 text-sm"
-                            >
-                              {username}
-                            </span>
-                          ))}
-                        </div>
-                      </div>
-                    )}
                 </TabsContent>
                 <TabsContent value="comments" className="space-y-4">
-                  {selectedEvent.comments?.length === 0 ? (
-                    <p className="text-center text-muted-foreground py-8">
-                      No comments yet
-                    </p>
-                  ) : (
+                  {/* Display Comments here */}
+                  {selectedEvent.comments.length > 0 ? (
                     <div className="space-y-3">
-                      {selectedEvent.comments?.map((comment) => (
+                      {selectedEvent.comments.map((comment) => (
                         <div
                           key={comment._id}
-                          className="p-3 rounded-lg bg-muted"
+                          className="p-3 border rounded-lg bg-gray-50"
                         >
-                          <div className="flex items-center justify-between mb-1">
-                            <span className="font-medium text-sm">
-                              {comment.username}
-                            </span>
-                            <span className="text-xs text-muted-foreground">
-                              {new Date(comment.createdAt).toLocaleDateString()}
-                            </span>
-                          </div>
+                          <p className="font-semibold text-sm">
+                            {comment.username}
+                          </p>
                           <p className="text-sm">{comment.content}</p>
+                          <p className="text-xs text-muted-foreground mt-1">
+                            {new Date(comment.createdAt).toLocaleString()}
+                          </p>
                         </div>
                       ))}
                     </div>
+                  ) : (
+                    <p className="text-center text-muted-foreground py-4">
+                      No comments for this event yet.
+                    </p>
                   )}
                 </TabsContent>
               </Tabs>
